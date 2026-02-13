@@ -24,7 +24,7 @@ export function InventoryProvider({ children }) {
         phoneNumber: tx.phone_number,
         section: tx.section,
         takenDate: tx.issue_date,
-        returnDate: tx.return_date,
+        returnDate: tx.return_date || null,
         type: tx.transaction_type === 'borrowed' ? 'borrow' : tx.transaction_type === 'purchased' ? 'purchase' : tx.transaction_type,
         quantity: tx.quantity || 1,
         createdAt: new Date(tx.created_at),

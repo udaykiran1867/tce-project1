@@ -37,7 +37,7 @@ export const createTransaction = async (req, res) => {
     if (body.issue_date) insertData.issue_date = body.issue_date;
     if (body.phone_number) insertData.phone_number = body.phone_number;
     if (body.quantity) insertData.quantity = body.quantity;
-    if (body.return_date) insertData.return_date = body.return_date;
+    insertData.return_date = body.return_date ? body.return_date : null;
 
     const { data: tx, error: txError } = await supabase
       .from('student_transactions')

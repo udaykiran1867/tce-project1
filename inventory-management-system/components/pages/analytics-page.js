@@ -241,6 +241,8 @@ export function AnalyticsPage() {
   const router = useRouter()
   const [isRefreshing, setIsRefreshing] = React.useState(false)
   const [selectedYear, setSelectedYear] = React.useState(null)
+  const [borrowedSearch, setBorrowedSearch] = React.useState("")
+  const [purchasedSearch, setPurchasedSearch] = React.useState("")
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
@@ -281,13 +283,65 @@ export function AnalyticsPage() {
     0,
   )
 
+  const isReturned = React.useCallback((record) => {
+    if (!record?.returnDate) return false
+    const parsed = new Date(record.returnDate)
+    if (Number.isNaN(parsed.getTime())) return false
+    const today = new Date()
+    today.setHours(23, 59, 59, 999)
+    return parsed <= today
+  }, [])
+
   const totalBorrowed = borrowRecords
-    .filter((r) => r.type === "borrow")
+    .filter((r) => r.type === "borrow" && !isReturned(r))
     .reduce((s, r) => s + r.quantity, 0)
 
   const totalPurchased = borrowRecords
     .filter((r) => r.type === "purchase")
     .reduce((s, r) => s + r.quantity, 0)
+
+  const productNameById = React.useMemo(() => {
+    const map = new Map()
+    products.forEach((p) => {
+      map.set(p.id, p.name)
+    })
+    return map
+  }, [products])
+
+  const getProductTotals = React.useCallback((type, excludeReturned) => {
+    const counts = new Map()
+    borrowRecords
+      .filter((r) => r.type === type && (!excludeReturned || !isReturned(r)))
+      .forEach((r) => {
+        const name = productNameById.get(r.productId) || "Unknown product"
+        counts.set(name, (counts.get(name) || 0) + (r.quantity || 1))
+      })
+    return Array.from(counts.entries())
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total)
+  }, [borrowRecords, isReturned, productNameById])
+
+  const borrowedByProduct = React.useMemo(
+    () => getProductTotals("borrow", true),
+    [getProductTotals],
+  )
+
+  const purchasedByProduct = React.useMemo(
+    () => getProductTotals("purchase", false),
+    [getProductTotals],
+  )
+
+  const filteredBorrowedProducts = React.useMemo(() => {
+    const query = borrowedSearch.trim().toLowerCase()
+    if (!query) return borrowedByProduct
+    return borrowedByProduct.filter((item) => item.name.toLowerCase().includes(query))
+  }, [borrowedByProduct, borrowedSearch])
+
+  const filteredPurchasedProducts = React.useMemo(() => {
+    const query = purchasedSearch.trim().toLowerCase()
+    if (!query) return purchasedByProduct
+    return purchasedByProduct.filter((item) => item.name.toLowerCase().includes(query))
+  }, [purchasedByProduct, purchasedSearch])
 
   const lowStockProducts = products.filter(
     (p) => p.masterCount > 0 && p.availability / p.masterCount <= 0.15
@@ -505,6 +559,33 @@ export function AnalyticsPage() {
                       style={{ width: `${Math.min((totalBorrowed / (totalMasterCount || 1)) * 100, 100)}%` }}
                     />
                   </div>
+                  {borrowedByProduct.length > 0 ? (
+                    <div className="mt-3 border-t border-slate-200/70 dark:border-slate-700/60 pt-3">
+                      <p className="text-[11px] font-semibold uppercase text-muted-foreground">By Product</p>
+                      <div className="mt-2">
+                        <input
+                          type="text"
+                          value={borrowedSearch}
+                          onChange={(e) => setBorrowedSearch(e.target.value)}
+                          placeholder="Search products"
+                          className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        <div className="mt-2 max-h-40 overflow-y-auto pr-1 space-y-1">
+                          {filteredBorrowedProducts.map((item) => (
+                            <div key={item.name} className="flex items-center justify-between text-sm">
+                              <span className="truncate">{item.name}</span>
+                              <span className="font-medium">{item.total}</span>
+                            </div>
+                          ))}
+                          {filteredBorrowedProducts.length === 0 && (
+                            <p className="text-xs text-muted-foreground">No matching products.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs text-muted-foreground">No borrowed items yet.</p>
+                  )}
                 </div>
               </div>
 
@@ -525,6 +606,33 @@ export function AnalyticsPage() {
                       style={{ width: `${Math.min((totalPurchased / (totalMasterCount || 1)) * 100, 100)}%` }}
                     />
                   </div>
+                  {purchasedByProduct.length > 0 ? (
+                    <div className="mt-3 border-t border-slate-200/70 dark:border-slate-700/60 pt-3">
+                      <p className="text-[11px] font-semibold uppercase text-muted-foreground">By Product</p>
+                      <div className="mt-2">
+                        <input
+                          type="text"
+                          value={purchasedSearch}
+                          onChange={(e) => setPurchasedSearch(e.target.value)}
+                          placeholder="Search products"
+                          className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        <div className="mt-2 max-h-40 overflow-y-auto pr-1 space-y-1">
+                          {filteredPurchasedProducts.map((item) => (
+                            <div key={item.name} className="flex items-center justify-between text-sm">
+                              <span className="truncate">{item.name}</span>
+                              <span className="font-medium">{item.total}</span>
+                            </div>
+                          ))}
+                          {filteredPurchasedProducts.length === 0 && (
+                            <p className="text-xs text-muted-foreground">No matching products.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs text-muted-foreground">No purchased items yet.</p>
+                  )}
                 </div>
               </div>
             </div>

@@ -21,7 +21,6 @@ function DialogContent({ className, children, ...props }) {
     </DialogPrimitive.Portal>
   )
 }
-function DialogTitle({ className, ...props }) { return <DialogPrimitive.Title className={cn('text-lg font-semibold', className)} {...props} /> }
 
 export function ProductCard({ product, onEdit, onOpenRecords }) {
   const [showImageModal, setShowImageModal] = useState(false)
@@ -137,7 +136,7 @@ export function ProductCard({ product, onEdit, onOpenRecords }) {
       <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
         <DialogContent className="sm:max-w-md">
           <div className="space-y-4">
-            <DialogTitle>{product.name}</DialogTitle>
+            <h2 className="text-lg font-semibold">{product.name}</h2>
             {product.imageUrl && (
               <img 
                 src={product.imageUrl} 

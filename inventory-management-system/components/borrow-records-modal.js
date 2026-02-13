@@ -141,12 +141,20 @@ function Button({ className, variant = "default", size = "default", ...props }) 
 const Check = () => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><polyline points="20 6 9 17 4 12"></polyline></svg>
 
 export function BorrowRecordsModal({ product, open, onOpenChange }) {
-  const { getProductRecords, addBorrowRecord, updateBorrowRecord, deleteBorrowRecord, returnProduct, fetchTransactions, products, setProducts } = useInventory()
-  const [returnedRecords, setReturnedRecords] = useState(new Set())
+  const { getProductRecords, addBorrowRecord, updateBorrowRecord, deleteBorrowRecord, returnProduct, fetchTransactions, refreshData, products } = useInventory()
 
   const getTodayDate = () => {
     const today = new Date()
     return today.toISOString().split('T')[0]
+  }
+
+  const isReturnedRecord = (record) => {
+    if (!record?.returnDate) return false
+    const parsed = new Date(record.returnDate)
+    if (Number.isNaN(parsed.getTime())) return false
+    const today = new Date()
+    today.setHours(23, 59, 59, 999)
+    return parsed <= today
   }
 
   const [studentName, setStudentName] = useState('')
@@ -305,41 +313,22 @@ export function BorrowRecordsModal({ product, open, onOpenChange }) {
   }
 
   const handleReturnProduct = async (recordId) => {
-    const isCurrentlyReturned = returnedRecords.has(recordId)
+    const record = getProductRecords(currentProduct.id).find(r => r.id === recordId)
+    if (!record) return
+    const isCurrentlyReturned = isReturnedRecord(record)
     const actionText = isCurrentlyReturned ? 'undo the return of' : 'mark as returned'
     const confirmReturn = window.confirm(`Are you sure you want to ${actionText} this item?`)
     if (!confirmReturn) return
 
     try {
-      const record = getProductRecords(currentProduct.id).find(r => r.id === recordId)
-      if (!record) return
-
       if (isCurrentlyReturned) {
-        // Undo return: reduce availability and update record status
-        setReturnedRecords(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(recordId)
-          return newSet
-        })
-        
-        // Update product availability (reduce because we're undoing the return)
-        setProducts(prev =>
-          prev.map(prod => {
-            if (prod.id !== currentProduct.id) return prod
-            return {
-              ...prod,
-              availability: prod.availability - record.quantity,
-            }
-          })
-        )
+        const success = await updateBorrowRecord(recordId, { returnDate: null })
+        if (!success) return
       } else {
-        // Mark as returned: increase availability and update record status
         const success = await returnProduct(recordId)
-        if (success) {
-          setReturnedRecords(prev => new Set([...prev, recordId]))
-          await fetchTransactions()
-        }
+        if (!success) return
       }
+      await refreshData()
     } catch (err) {
       window.alert('Error updating return status: ' + err.message)
     }
@@ -417,10 +406,10 @@ export function BorrowRecordsModal({ product, open, onOpenChange }) {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className={returnedRecords.has(record.id) ? "text-emerald-600 border-emerald-600/40 bg-emerald-50 dark:bg-emerald-950/20" : "text-green-600 border-green-600/40 hover:bg-green-600/10"}
+                                className={isReturnedRecord(record) ? "text-emerald-600 border-emerald-600/40 bg-emerald-50 dark:bg-emerald-950/20" : "text-green-600 border-green-600/40 hover:bg-green-600/10"}
                                 onClick={() => handleReturnProduct(record.id)}
                               >
-                                {returnedRecords.has(record.id) ? '✓ Returned' : 'Return'}
+                                {isReturnedRecord(record) ? '✓ Returned' : 'Return'}
                               </Button>
                             )}
                             <Button
