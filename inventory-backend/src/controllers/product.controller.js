@@ -1,4 +1,4 @@
-
+//hello world
 import { supabase } from '../config/supabase.js';
 
 export const addProduct = async (req, res) => {
@@ -211,3 +211,4 @@ export const deleteProduct = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete product' });
   }
 };
+

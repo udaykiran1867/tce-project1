@@ -40,7 +40,7 @@ export function InvoicePage() {
   const [invoices, setInvoices] = useState([])
   const [deletingId, setDeletingId] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [monthFilter, setMonthFilter] = useState("")
+  const [dateFrom, setDateFrom] = useState("")
 
   const currentDate = useMemo(() => {
     const today = new Date()
@@ -49,28 +49,27 @@ export function InvoicePage() {
 
   const filteredInvoices = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
-    const normalizeMonth = (value) => {
-      if (!value) return null
-      const date = new Date(value)
-      if (Number.isNaN(date.getTime())) return null
-      const month = String(date.getMonth() + 1).padStart(2, "0")
-      return `${date.getFullYear()}-${month}`
+    
+    let filtered = invoices
+    
+    // Filter by date
+    if (dateFrom) {
+      filtered = filtered.filter((invoice) => {
+        const stamp = invoice.uploaded_at || invoice.created_at
+        if (!stamp) return false
+        const invoiceDate = new Date(stamp).toISOString().split('T')[0]
+        return invoiceDate >= dateFrom
+      })
     }
-
-    const filteredByMonth = monthFilter
-      ? invoices.filter((invoice) => {
-          const stamp = invoice.uploaded_at || invoice.created_at
-          return normalizeMonth(stamp) === monthFilter
-        })
-      : invoices
-
-    if (!query) return filteredByMonth
-    return filteredByMonth.filter((invoice) => {
+    
+    // Filter by search query
+    if (!query) return filtered
+    return filtered.filter((invoice) => {
       const titleMatch = invoice.title?.toLowerCase().includes(query)
       const nameMatch = invoice.file_name?.toLowerCase().includes(query)
       return titleMatch || nameMatch
     })
-  }, [invoices, monthFilter, searchQuery])
+  }, [invoices, dateFrom, searchQuery])
 
   const fetchInvoices = async () => {
     setLoading(true)
@@ -125,12 +124,21 @@ export function InvoicePage() {
   const handleDelete = async (invoiceId) => {
     const confirmed = window.confirm("Delete this invoice?")
     if (!confirmed) return
+    
     setDeletingId(invoiceId)
     setError("")
+    
+    // Optimistically remove from UI
+    const invoiceToRestore = invoices.find(inv => inv.id === invoiceId)
+    setInvoices(prev => prev.filter(inv => inv.id !== invoiceId))
+    
     try {
       await invoicesAPI.delete(invoiceId)
-      await fetchInvoices()
     } catch (err) {
+      // Restore if delete fails
+      if (invoiceToRestore) {
+        setInvoices(prev => [invoiceToRestore, ...prev])
+      }
       setError(err.message || "Failed to delete invoice")
     } finally {
       setDeletingId(null)
@@ -230,10 +238,10 @@ export function InvoicePage() {
               className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <input
-              type="month"
-              value={monthFilter}
-              onChange={(event) => setMonthFilter(event.target.value)}
-              className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              type="date"
+              value={dateFrom}
+              onChange={(event) => setDateFrom(event.target.value)}
+              className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
         </div>

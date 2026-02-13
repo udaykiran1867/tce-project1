@@ -161,10 +161,10 @@ export function RegisterPage() {
       if (success) {
         router.push("/login")
       } else {
-        setError("Registration failed. Please try again.")
+        setError("user already exists")
       }
     } catch (err) {
-      setError(err.message || "Registration failed. Please try again.")
+      setError(err.message || "Registration failed")
     } finally {
       setIsLoading(false)
     }

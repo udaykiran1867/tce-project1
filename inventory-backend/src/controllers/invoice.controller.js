@@ -122,14 +122,16 @@ export const deleteInvoice = async (req, res) => {
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
+    // Try to delete storage file (don't fail if it doesn't exist)
     const { error: removeError } = await supabase.storage
       .from('invoices')
       .remove([data.file_path]);
 
     if (removeError) {
-      throw removeError;
+      console.warn(`Storage file removal warning for ${data.file_path}:`, removeError.message);
     }
 
+    // Always delete from database regardless of storage status
     const { error: deleteError } = await supabase
       .from('invoices')
       .delete()
