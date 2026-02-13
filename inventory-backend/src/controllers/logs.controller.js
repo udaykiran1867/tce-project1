@@ -148,7 +148,7 @@ export const getMonthlySummary = async (req, res) => {
 
     const { data: logs, error: logsError } = await supabase
       .from('inventory_logs')
-      .select('action_type, quantity_changed, created_at')
+      .select('product_id, action_type, quantity_changed, created_at')
       .gte('created_at', start.toISOString())
       .lte('created_at', end.toISOString());
 
@@ -181,6 +181,7 @@ export const getMonthlySummary = async (req, res) => {
 
     const buckets = buildMonthBuckets(months);
     const bucketMap = new Map(buckets.map((b) => [b.key, b]));
+    const loggedPurchaseMap = new Map();
 
     const formatDate = (value) => {
       if (!value) return '';
@@ -225,6 +226,10 @@ export const getMonthlySummary = async (req, res) => {
       switch (log.action_type) {
         case 'company_purchase':
           bucket.newlyPurchased += Math.abs(qty);
+          if (log.product_id) {
+            const mapKey = `${key}:${log.product_id}`;
+            loggedPurchaseMap.set(mapKey, (loggedPurchaseMap.get(mapKey) || 0) + Math.abs(qty));
+          }
           break;
         case 'student_borrow':
         case 'student_return':
@@ -235,6 +240,32 @@ export const getMonthlySummary = async (req, res) => {
           break;
         default:
           break;
+      }
+    });
+
+    const { data: products, error: productsError } = await supabase
+      .from('products')
+      .select('id, created_at, product_stock(master_count)');
+
+    if (productsError) {
+      return res.status(400).json({ error: productsError.message });
+    }
+
+    (products || []).forEach((product) => {
+      if (!product.created_at) return;
+      const createdAt = new Date(product.created_at);
+      if (Number.isNaN(createdAt.getTime())) return;
+
+      const key = getMonthKey(createdAt);
+      const bucket = bucketMap.get(key);
+      if (!bucket) return;
+
+      const masterCount = product.product_stock?.[0]?.master_count || 0;
+      const loggedKey = `${key}:${product.id}`;
+      const loggedAmount = loggedPurchaseMap.get(loggedKey) || 0;
+
+      if (masterCount > loggedAmount) {
+        bucket.newlyPurchased += Math.max(masterCount - loggedAmount, 0);
       }
     });
 
@@ -291,7 +322,7 @@ export const getMonthlyProductReport = async (req, res) => {
 
     const { data: products, error: productsError } = await supabase
       .from('products')
-      .select('id, name');
+      .select('id, name, created_at, product_stock(master_count)');
 
     if (productsError) {
       return res.status(400).json({ error: productsError.message });
@@ -357,12 +388,23 @@ export const getMonthlyProductReport = async (req, res) => {
 
     const reportMap = new Map();
     (products || []).forEach((p) => {
+      const createdAt = p.created_at ? new Date(p.created_at) : null;
+      const createdInRange = createdAt
+        && !Number.isNaN(createdAt.getTime())
+        && createdAt >= startDate
+        && createdAt <= endDate;
+      const masterCount = p.product_stock?.[0]?.master_count || 0;
+      const loggedAdditions = additionsMap.get(p.id) || 0;
+      const additions = createdInRange
+        ? Math.max(loggedAdditions, masterCount)
+        : loggedAdditions;
       const openingStock = Math.max(0, openingMap.get(p.id) || 0);
+
       reportMap.set(p.id, {
         productId: p.id,
         productName: p.name,
         openingStock,
-        additions: additionsMap.get(p.id) || 0,
+        additions,
         scrap: scrapMap.get(p.id) || 0,
         utilized: utilizedMap.get(p.id) || 0,
         closingStock: 0,

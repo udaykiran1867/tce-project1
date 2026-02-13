@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useMemo, useState } from "react"
 import { useInventory } from '@/lib/inventory-context'
 import { Plus, X, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -169,9 +169,14 @@ export function BorrowRecordsModal({ product, open, onOpenChange }) {
     }
   }, [open, activeTab, fetchTransactions])
 
-  if (!product) return null
+  const currentProduct = useMemo(() => {
+    if (!product) return null
+    return products.find((item) => item.id === product.id) || product
+  }, [product, products])
 
-  const records = getProductRecords(product.id)
+  if (!currentProduct) return null
+
+  const records = getProductRecords(currentProduct.id)
   const normalizedQuery = searchQuery.trim().toLowerCase()
   const filteredRecords = normalizedQuery
     ? records.filter((record) => {
@@ -187,8 +192,8 @@ export function BorrowRecordsModal({ product, open, onOpenChange }) {
   const purchaseEditCredit = editingRecord && editingRecord.type === 'purchase'
     ? editingRecord.quantity
     : 0
-  const maxBorrowable = (product.availability || 0) + borrowEditCredit
-  const maxPurchasable = (product.masterCount || 0) + purchaseEditCredit
+  const maxBorrowable = (currentProduct.availability || 0) + borrowEditCredit
+  const maxPurchasable = (currentProduct.masterCount || 0) + purchaseEditCredit
 
   const resetForm = () => {
     setStudentName('')
@@ -245,7 +250,7 @@ export function BorrowRecordsModal({ product, open, onOpenChange }) {
 
     setIsSubmitting(true)
     const payload = {
-      productId: product.id,
+      productId: currentProduct.id,
       studentName: studentName.trim(),
       usn: usn.trim().toUpperCase(),
       phoneNumber: phoneNumber.trim(),
@@ -306,7 +311,7 @@ export function BorrowRecordsModal({ product, open, onOpenChange }) {
     if (!confirmReturn) return
 
     try {
-      const record = getProductRecords(product.id).find(r => r.id === recordId)
+      const record = getProductRecords(currentProduct.id).find(r => r.id === recordId)
       if (!record) return
 
       if (isCurrentlyReturned) {
@@ -320,7 +325,7 @@ export function BorrowRecordsModal({ product, open, onOpenChange }) {
         // Update product availability (reduce because we're undoing the return)
         setProducts(prev =>
           prev.map(prod => {
-            if (prod.id !== product.id) return prod
+            if (prod.id !== currentProduct.id) return prod
             return {
               ...prod,
               availability: prod.availability - record.quantity,
@@ -346,7 +351,7 @@ export function BorrowRecordsModal({ product, open, onOpenChange }) {
         <DialogHeader>
           <DialogTitle>Borrow / Purchase Database</DialogTitle>
           <DialogDescription>
-            {product.name} - Available: {product.availability} / Master: {product.masterCount}
+            {currentProduct.name} - Available: {currentProduct.availability} / Master: {currentProduct.masterCount}
           </DialogDescription>
         </DialogHeader>
 

@@ -3,7 +3,15 @@ import { supabase } from '../config/supabase.js';
 
 export const addProduct = async (req, res) => {
   try {
-    const { name, description, masterCount } = req.body;
+    const { name, description, masterCount, availability } = req.body;
+    const masterValueRaw = Number(masterCount);
+    const masterValue = Number.isFinite(masterValueRaw) && masterValueRaw > 0
+      ? masterValueRaw
+      : 0;
+    const availabilityValue = Number(availability);
+    const safeAvailability = Number.isFinite(availabilityValue)
+      ? Math.min(Math.max(availabilityValue, 0), Math.max(masterValue, 0))
+      : Math.max(masterValue, 0);
 
     const { data: product, error: productError } = await supabase
       .from('products')
@@ -17,14 +25,14 @@ export const addProduct = async (req, res) => {
 
     const { error: stockError } = await supabase.from('product_stock').insert({
       product_id: product.id,
-      master_count: masterCount || 0,
-      available_count: masterCount || 0
+      master_count: masterValue,
+      available_count: safeAvailability
     });
 
     await supabase.from('inventory_logs').insert({
       product_id: product.id,
       action_type: 'company_purchase',
-      quantity_changed: masterCount || 0,
+      quantity_changed: masterValue,
       created_at: new Date().toISOString(),
     });
 
@@ -32,8 +40,8 @@ export const addProduct = async (req, res) => {
       id: product.id,
       name: product.name,
       description: product.description,
-      masterCount: masterCount || 0,
-      availability: masterCount || 0,
+      masterCount: masterValue,
+      availability: safeAvailability,
       createdAt: new Date()
     };
 

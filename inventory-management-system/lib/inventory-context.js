@@ -76,7 +76,12 @@ export function InventoryProvider({ children }) {
 
   const addProduct = useCallback(async (name, masterCount, availability) => {
     try {
-      const newProduct = await productAPI.add(name, "Product description", masterCount);
+      const newProduct = await productAPI.add(
+        name,
+        "Product description",
+        masterCount,
+        availability
+      );
       setProducts((prev) => [...prev, newProduct]);
       // Ensure monthly analytics (additions/scrap) reflect newly added items immediately
       await fetchMonthlyReport();
@@ -121,13 +126,14 @@ export function InventoryProvider({ children }) {
             : product
         )
       );
+      await fetchProducts();
       await fetchMonthlyReport();
       return true;
     } catch (err) {
       setError(err.message);
       return false;
     }
-  }, [fetchMonthlyReport]);
+  }, [fetchMonthlyReport, fetchProducts]);
 
   const markDefective = useCallback(async (id, quantity) => {
     try {
@@ -143,13 +149,14 @@ export function InventoryProvider({ children }) {
             : product
         )
       );
+      await fetchProducts();
       await fetchMonthlyReport();
       return true;
     } catch (err) {
       setError(err.message);
       return false;
     }
-  }, [fetchMonthlyReport]);
+  }, [fetchMonthlyReport, fetchProducts]);
 
   const addBorrowRecord = useCallback(async (record) => {
     try {
@@ -168,12 +175,13 @@ export function InventoryProvider({ children }) {
       await fetchTransactions();
       const updatedProducts = await productAPI.getAll();
       setProducts(Array.isArray(updatedProducts) ? updatedProducts : []);
+      await fetchMonthlyReport();
       return true;
     } catch (err) {
       setError(err.message);
       return false;
     }
-  }, [fetchTransactions]);
+  }, [fetchMonthlyReport, fetchTransactions]);
 
   const updateBorrowRecord = useCallback(async (recordId, updates) => {
     try {
@@ -182,12 +190,13 @@ export function InventoryProvider({ children }) {
       await fetchTransactions();
       const updatedProducts = await productAPI.getAll();
       setProducts(Array.isArray(updatedProducts) ? updatedProducts : []);
+      await fetchMonthlyReport();
       return true;
     } catch (err) {
       setError(err.message);
       return false;
     }
-  }, [fetchTransactions]);
+  }, [fetchMonthlyReport, fetchTransactions]);
 
   const returnProduct = useCallback(async (recordId) => {
     try {
@@ -195,24 +204,16 @@ export function InventoryProvider({ children }) {
       await transactionAPI.return(recordId);
 
       await fetchTransactions();
-
-      setProducts((prev) =>
-        prev.map((product) => {
-          if (product.id !== record.productId) return product;
-
-          return {
-            ...product,
-            availability: product.availability + record.quantity,
-          };
-        })
-      );
+      const updatedProducts = await productAPI.getAll();
+      setProducts(Array.isArray(updatedProducts) ? updatedProducts : []);
+      await fetchMonthlyReport();
 
       return true;
     } catch (err) {
       setError(err.message);
       return false;
     }
-  }, [borrowRecords, fetchTransactions]);
+  }, [borrowRecords, fetchMonthlyReport, fetchTransactions]);
 
   const deleteBorrowRecord = useCallback(async (recordId) => {
     try {
@@ -221,13 +222,14 @@ export function InventoryProvider({ children }) {
       await fetchTransactions();
       const updatedProducts = await productAPI.getAll();
       setProducts(Array.isArray(updatedProducts) ? updatedProducts : []);
+      await fetchMonthlyReport();
 
       return true;
     } catch (err) {
       setError(err.message);
       return false;
     }
-  }, [fetchTransactions]);
+  }, [fetchMonthlyReport, fetchTransactions]);
 
   const getProductRecords = useCallback((productId) => {
     return borrowRecords.filter((record) => record.productId === productId);

@@ -76,10 +76,10 @@ export const authAPI = {
 
 export const productAPI = {
   getAll: () => apiCall("/products", { method: "GET" }),
-  add: (name, description, masterCount) =>
+  add: (name, description, masterCount, availability) =>
     apiCall("/products", {
       method: "POST",
-      body: { name, description, masterCount },
+      body: { name, description, masterCount, availability },
     }),
   updateMaster: (id, masterCount) =>
     apiCall(`/products/${id}/master`, {
