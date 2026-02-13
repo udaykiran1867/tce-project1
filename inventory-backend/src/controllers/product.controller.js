@@ -1,4 +1,4 @@
-//hello world
+
 import { supabase } from '../config/supabase.js';
 
 export const addProduct = async (req, res) => {
