@@ -32,6 +32,7 @@ import {
   getProducts,
   updateMaster,
   markDefective,
+  updateProduct,
   deleteProduct
 } from '../controllers/product.controller.js';
 
@@ -44,6 +45,8 @@ router.post('/', addProduct);
 router.put('/:id/master', updateMaster);
 
 router.put('/:id/defective', markDefective);
+
+router.put('/:id', updateProduct);
 
 router.delete('/:id', deleteProduct);
 

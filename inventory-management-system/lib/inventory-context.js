@@ -74,13 +74,15 @@ export function InventoryProvider({ children }) {
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const addProduct = useCallback(async (name, masterCount, availability) => {
+  const addProduct = useCallback(async (name, masterCount, availability, price, imageUrl) => {
     try {
       const newProduct = await productAPI.add(
         name,
         "Product description",
         masterCount,
-        availability
+        availability,
+        price,
+        imageUrl
       );
       setProducts((prev) => [...prev, newProduct]);
       // Ensure monthly analytics (additions/scrap) reflect newly added items immediately
@@ -109,6 +111,27 @@ export function InventoryProvider({ children }) {
     } catch (error) {
       console.error('Failed to delete product:', error);
       throw error;
+    }
+  }, []);
+
+  const updateProductDetails = useCallback(async (id, price, imageUrl) => {
+    try {
+      const result = await productAPI.update(id, price, imageUrl);
+      setProducts((prev) =>
+        prev.map((product) =>
+          product.id === id
+            ? {
+                ...product,
+                price: result.price,
+                imageUrl: result.imageUrl,
+              }
+            : product
+        )
+      );
+      return true;
+    } catch (err) {
+      setError(err.message);
+      return false;
     }
   }, []);
 
@@ -254,6 +277,7 @@ export function InventoryProvider({ children }) {
         filteredProducts,
         addProduct,
         updateProduct,
+        updateProductDetails,
         deleteProduct,
         addPurchasedItems,
         markDefective,

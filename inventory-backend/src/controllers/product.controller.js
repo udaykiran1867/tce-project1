@@ -3,7 +3,7 @@ import { supabase } from '../config/supabase.js';
 
 export const addProduct = async (req, res) => {
   try {
-    const { name, description, masterCount, availability } = req.body;
+    const { name, description, masterCount, availability, price, imageUrl } = req.body;
     const masterValueRaw = Number(masterCount);
     const masterValue = Number.isFinite(masterValueRaw) && masterValueRaw > 0
       ? masterValueRaw
@@ -12,10 +12,11 @@ export const addProduct = async (req, res) => {
     const safeAvailability = Number.isFinite(availabilityValue)
       ? Math.min(Math.max(availabilityValue, 0), Math.max(masterValue, 0))
       : Math.max(masterValue, 0);
+    const priceValue = Number(price) || null;
 
     const { data: product, error: productError } = await supabase
       .from('products')
-      .insert({ name, description })
+      .insert({ name, description, image_url: imageUrl || null, price: priceValue })
       .select()
       .single();
 
@@ -40,6 +41,8 @@ export const addProduct = async (req, res) => {
       id: product.id,
       name: product.name,
       description: product.description,
+      price: product.price,
+      imageUrl: product.image_url,
       masterCount: masterValue,
       availability: safeAvailability,
       createdAt: new Date()
@@ -59,6 +62,8 @@ export const getProducts = async (req, res) => {
         id,
         name,
         description,
+        price,
+        image_url,
         product_stock (master_count, available_count)
       `);
 
@@ -66,6 +71,8 @@ export const getProducts = async (req, res) => {
       id: product.id,
       name: product.name,
       description: product.description,
+      price: product.price,
+      imageUrl: product.image_url,
       masterCount: product.product_stock?.[0]?.master_count || 0,
       availability: product.product_stock?.[0]?.available_count || 0,
       createdAt: new Date()
@@ -173,6 +180,45 @@ export const markDefective = async (req, res) => {
     res.json({ message: 'Defective items removed', masterCount: nextMaster, availability: nextAvailable });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update defective items' });
+  }
+};
+
+export const updateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { price, imageUrl } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Product ID is required' });
+    }
+
+    const updateData = {};
+    if (price !== undefined) updateData.price = Number(price) || null;
+    if (imageUrl !== undefined) updateData.image_url = imageUrl || null;
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    const { data: product, error } = await supabase
+      .from('products')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    res.json({
+      message: 'Product updated successfully',
+      id: product.id,
+      price: product.price,
+      imageUrl: product.image_url
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update product' });
   }
 };
 

@@ -76,10 +76,15 @@ export const authAPI = {
 
 export const productAPI = {
   getAll: () => apiCall("/products", { method: "GET" }),
-  add: (name, description, masterCount, availability) =>
+  add: (name, description, masterCount, availability, price, imageUrl) =>
     apiCall("/products", {
       method: "POST",
-      body: { name, description, masterCount, availability },
+      body: { name, description, masterCount, availability, price: price || null, imageUrl: imageUrl || null },
+    }),
+  update: (id, price, imageUrl) =>
+    apiCall(`/products/${id}`, {
+      method: "PUT",
+      body: { price: price || null, imageUrl: imageUrl || null },
     }),
   updateMaster: (id, masterCount) =>
     apiCall(`/products/${id}/master`, {

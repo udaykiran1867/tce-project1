@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react"
 import { useInventory } from "@/lib/inventory-context"
-import { Plus, Minus, Trash2, X } from "lucide-react"
+import { Plus, Minus, Trash2, X, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { uploadProductImage } from "@/lib/storage"
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import * as TabsPrimitive from '@radix-ui/react-tabs'
 
@@ -61,15 +62,25 @@ function Button({ className, variant = "default", size = "default", ...props }) 
 }
 
 export function EditProductModal({ product, open, onOpenChange }) {
-  const { addPurchasedItems, markDefective, deleteProduct, products } = useInventory()
+  const { addPurchasedItems, markDefective, deleteProduct, updateProductDetails, products } = useInventory()
 
   const [purchaseQuantity, setPurchaseQuantity] = useState("")
   const [defectiveQuantity, setDefectiveQuantity] = useState("")
+  const [price, setPrice] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
+  const [imagePreview, setImagePreview] = useState("")
+  const [uploading, setUploading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [updateSuccess, setUpdateSuccess] = useState(false)
 
   const currentProduct = useMemo(() => {
     if (!product) return null
-    return products.find((item) => item.id === product.id) || product
+    const foundProduct = products.find((item) => item.id === product.id) || product
+    // Update form fields when product changes
+    setPrice(foundProduct.price?.toString() || "")
+    setImageUrl(foundProduct.imageUrl || "")
+    setImagePreview(foundProduct.imageUrl || "")
+    return foundProduct
   }, [product, products])
 
   if (!currentProduct) return null
@@ -100,10 +111,51 @@ export function EditProductModal({ product, open, onOpenChange }) {
     onOpenChange(false)
   }
 
+  const handleUpdateProductDetails = async () => {
+    if (price && isNaN(parseFloat(price))) {
+      alert("Price must be a valid number")
+      return
+    }
+    const ok = await updateProductDetails(
+      currentProduct.id,
+      price ? parseFloat(price) : null,
+      imageUrl || null
+    )
+    if (ok) {
+      setUpdateSuccess(true)
+      setTimeout(() => setUpdateSuccess(false), 2000)
+    }
+  }
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+
+    const result = await uploadProductImage(file)
+    
+    if (result.success) {
+      setImageUrl(result.url)
+      setImagePreview(result.url)
+      setUpdateSuccess(true)
+      setTimeout(() => setUpdateSuccess(false), 2000)
+    } else {
+      alert(result.error || "Failed to upload image")
+    }
+    
+    setUploading(false)
+  }
+
   const handleClose = () => {
     setPurchaseQuantity("")
     setDefectiveQuantity("")
+    setPrice("")
+    setImageUrl("")
+    setImagePreview("")
+    setUploading(false)
     setShowDeleteConfirm(false)
+    setUpdateSuccess(false)
     onOpenChange(false)
   }
 
@@ -134,9 +186,10 @@ export function EditProductModal({ product, open, onOpenChange }) {
         ) : (
           <>
             <Tabs defaultValue="purchase" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="purchase">Add Purchased</TabsTrigger>
                 <TabsTrigger value="defective">Mark Defective</TabsTrigger>
+                <TabsTrigger value="details">Details</TabsTrigger>
               </TabsList>
 
               <TabsContent value="purchase" className="space-y-4 mt-4">
@@ -195,6 +248,96 @@ export function EditProductModal({ product, open, onOpenChange }) {
                     </Button>
                   </div>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="details" className="space-y-4 mt-4">
+                {updateSuccess && (
+                  <div className="p-3 text-sm text-green-700 bg-green-100 rounded-md">
+                    ✓ Product details updated successfully
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="detailPrice">Price (Optional)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Price per unit in your currency
+                  </p>
+                  <Input
+                    id="detailPrice"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g., 49.99"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="detailImageUpload">Product Image (Optional)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Upload image from device or enter a URL
+                  </p>
+
+                  {/* File Upload Input */}
+                  <div className="relative">
+                    <input
+                      id="detailImageUpload"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="detailImageUpload"
+                      className={cn(
+                        'flex items-center justify-center gap-2 rounded-md border-2 border-dashed p-3 cursor-pointer transition-colors',
+                        uploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'
+                      )}
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span className="text-sm font-medium">
+                        {uploading ? "Uploading..." : "Click to upload"}
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="relative">
+                    <Input
+                      type="url"
+                      placeholder="Or paste image URL here"
+                      value={imageUrl}
+                      onChange={(e) => {
+                        setImageUrl(e.target.value)
+                        if (e.target.value) {
+                          setImagePreview(e.target.value)
+                        } else {
+                          setImagePreview("")
+                        }
+                      }}
+                      disabled={uploading}
+                    />
+                  </div>
+
+                  {imagePreview && (
+                    <div className="mt-2 p-2 bg-muted rounded-md border border-border">
+                      <div className="mb-2 text-xs text-muted-foreground">Preview:</div>
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="max-h-32 max-w-full object-contain rounded"
+                        onError={() => setImagePreview("")}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <Button 
+                  onClick={handleUpdateProductDetails}
+                  className="w-full"
+                >
+                  Save Details
+                </Button>
               </TabsContent>
             </Tabs>
 

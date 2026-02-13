@@ -3,8 +3,9 @@
 import React, { useState } from "react"
 import { useInventory } from "@/lib/inventory-context"
 import { useToast } from "@/hooks/use-toast"
-import { Plus, X } from "lucide-react"
+import { Plus, X, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { uploadProductImage } from "@/lib/storage"
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 
 function Dialog({ children, ...props }) { return <DialogPrimitive.Root {...props}>{children}</DialogPrimitive.Root> }
@@ -55,13 +56,44 @@ export function AddProductModal({ open, onOpenChange }) {
   const [name, setName] = useState("")
   const [masterCount, setMasterCount] = useState("")
   const [availability, setAvailability] = useState("")
+  const [price, setPrice] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
+  const [imagePreview, setImagePreview] = useState("")
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState("")
 
   const resetForm = () => {
     setName("")
     setMasterCount("")
     setAvailability("")
+    setPrice("")
+    setImageUrl("")
+    setImagePreview("")
+    setUploading(false)
     setError("")
+  }
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    setError("")
+
+    const result = await uploadProductImage(file)
+    
+    if (result.success) {
+      setImageUrl(result.url)
+      setImagePreview(result.url)
+      toast({
+        title: "Image Uploaded",
+        description: "Product image has been uploaded successfully.",
+      })
+    } else {
+      setError(result.error || "Failed to upload image")
+    }
+    
+    setUploading(false)
   }
 
   const handleSubmit = async (e) => {
@@ -91,7 +123,12 @@ export function AddProductModal({ open, onOpenChange }) {
       return
     }
 
-    const success = await addProduct(name.trim(), master, available)
+    if (price && isNaN(parseFloat(price))) {
+      setError("Price must be a valid number")
+      return
+    }
+
+    const success = await addProduct(name.trim(), master, available, price ? parseFloat(price) : null, imageUrl || null)
     
     if (!success) {
       setError("Failed to add product. Please try again.")
@@ -186,6 +223,82 @@ export function AddProductModal({ open, onOpenChange }) {
               value={availability}
               onChange={(e) => setAvailability(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="price">Price (Optional)</Label>
+            <p className="text-xs text-muted-foreground">
+              Price per unit in your currency
+            </p>
+            <Input
+              id="price"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="e.g., 49.99"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="imageUpload">Product Image (Optional)</Label>
+            <p className="text-xs text-muted-foreground">
+              Upload image from device or enter a URL
+            </p>
+            
+            {/* File Upload Input */}
+            <div className="relative">
+              <input
+                id="imageUpload"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleFileUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+              <label
+                htmlFor="imageUpload"
+                className={cn(
+                  'flex items-center justify-center gap-2 rounded-md border-2 border-dashed p-4 cursor-pointer transition-colors',
+                  uploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'
+                )}
+              >
+                <Upload className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  {uploading ? "Uploading..." : "Click to upload or drag image"}
+                </span>
+              </label>
+            </div>
+
+            <div className="relative">
+              <Input
+                type="url"
+                placeholder="Or paste image URL here"
+                value={imageUrl}
+                onChange={(e) => {
+                  setImageUrl(e.target.value)
+                  if (e.target.value) {
+                    setImagePreview(e.target.value)
+                  } else {
+                    setImagePreview("")
+                  }
+                }}
+                disabled={uploading}
+              />
+            </div>
+
+            {imagePreview && (
+              <div className="mt-2 p-2 bg-muted rounded-md border border-border">
+                <div className="mb-2 text-xs text-muted-foreground">Preview:</div>
+                <img 
+                  src={imagePreview} 
+                  alt="Preview" 
+                  className="max-h-32 max-w-full object-contain rounded"
+                  onError={() => setImagePreview("")}
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2">
