@@ -13,7 +13,7 @@ function DialogContent({ className, children, ...props }) {
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
-      <DialogPrimitive.Content className={cn('fixed top-1/2 left-1/2 z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] bg-background border rounded-lg p-6 shadow-lg', className)} {...props}>
+      <DialogPrimitive.Content className={cn('fixed top-1/2 left-1/2 z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] bg-background border rounded-lg p-4 shadow-lg', className)} {...props}>
         {children}
         <DialogPrimitive.Close className="absolute right-4 top-4 opacity-70 transition-opacity hover:opacity-100">
           <X className="h-4 w-4" />
@@ -158,7 +158,7 @@ export function AddProductModal({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Product</DialogTitle>
           <DialogDescription>
@@ -166,14 +166,14 @@ export function AddProductModal({ open, onOpenChange }) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {error && (
             <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
               {error}
             </div>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="productName">Product Name</Label>
             <Input
               id="productName"
@@ -183,7 +183,7 @@ export function AddProductModal({ open, onOpenChange }) {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="masterCount">Master Count</Label>
             <p className="text-xs text-muted-foreground">
               Total quantity owned (includes all items, even those currently borrowed)
@@ -198,7 +198,7 @@ export function AddProductModal({ open, onOpenChange }) {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label htmlFor="availability">Availability</Label>
               <Button
@@ -225,7 +225,7 @@ export function AddProductModal({ open, onOpenChange }) {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="price">Price (Optional)</Label>
             <p className="text-xs text-muted-foreground">
               Price per unit in your currency
@@ -241,7 +241,7 @@ export function AddProductModal({ open, onOpenChange }) {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="imageUpload">Product Image (Optional)</Label>
             <p className="text-xs text-muted-foreground">
               Upload image from device or enter a URL
@@ -260,7 +260,7 @@ export function AddProductModal({ open, onOpenChange }) {
               <label
                 htmlFor="imageUpload"
                 className={cn(
-                  'flex items-center justify-center gap-2 rounded-md border-2 border-dashed p-4 cursor-pointer transition-colors',
+                  'flex items-center justify-center gap-2 rounded-md border-2 border-dashed p-3 cursor-pointer transition-colors',
                   uploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'
                 )}
               >
@@ -294,7 +294,7 @@ export function AddProductModal({ open, onOpenChange }) {
                 <img 
                   src={imagePreview} 
                   alt="Preview" 
-                  className="max-h-32 max-w-full object-contain rounded"
+                  className="max-h-24 max-w-full object-contain rounded"
                   onError={() => setImagePreview("")}
                 />
               </div>

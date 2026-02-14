@@ -464,7 +464,7 @@ export function AnalyticsPage() {
   }
 
   return (
-    <div className="space-y-8 p-4 animate-in fade-in duration-500">
+    <div className="space-y-8 px-4 py-6 sm:px-6 lg:px-8 animate-in fade-in duration-500">
       {/* Background Pattern */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20"></div>
