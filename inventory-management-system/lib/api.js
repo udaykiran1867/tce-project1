@@ -81,20 +81,28 @@ export const productAPI = {
       method: "POST",
       body: { name, description, masterCount, availability, price: price || null, imageUrl: imageUrl || null },
     }),
-  update: (id, price, imageUrl) =>
+  update: (id, price, imageUrl, masterCount, availability) =>
     apiCall(`/products/${id}`, {
       method: "PUT",
-      body: { price: price || null, imageUrl: imageUrl || null },
+      body: {
+        price: price || null,
+        imageUrl: imageUrl || null,
+        ...(masterCount !== undefined ? { masterCount } : {}),
+        ...(availability !== undefined ? { availability } : {}),
+      },
     }),
   updateMaster: (id, masterCount) =>
     apiCall(`/products/${id}/master`, {
       method: "PUT",
       body: { masterCount },
     }),
-  markDefective: (id, quantity) =>
+  markDefective: (id, quantity, defectReason) =>
     apiCall(`/products/${id}/defective`, {
       method: "PUT",
-      body: { quantity },
+      body: {
+        quantity,
+        ...(defectReason ? { defectReason } : {}),
+      },
     }),
   delete: (id) =>
     apiCall(`/products/${id}`, {
@@ -183,15 +191,25 @@ export const logsAPI = {
     if (year) params.append('year', year);
     return apiCall(`/logs/monthly-products?${params.toString()}`, { method: "GET" });
   },
+  getDefectiveRemarks: (limit = 500) =>
+    apiCall(`/logs/defective-remarks?limit=${limit}`, { method: "GET" }),
 };
 
 export const invoicesAPI = {
   getAll: () => apiCall("/invoices", { method: "GET" }),
-  upload: ({ title, file }) => {
+  upload: ({ title, file, invoiceDate }) => {
     const formData = new FormData();
     formData.append("title", title);
     formData.append("file", file);
+    if (invoiceDate) {
+      formData.append("invoiceDate", invoiceDate);
+    }
     return apiCallForm("/invoices", formData);
   },
+  update: (id, updates) =>
+    apiCall(`/invoices/${id}`, {
+      method: "PUT",
+      body: updates,
+    }),
   delete: (id) => apiCall(`/invoices/${id}`, { method: "DELETE" }),
 };

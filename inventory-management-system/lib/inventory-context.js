@@ -114,9 +114,9 @@ export function InventoryProvider({ children }) {
     }
   }, []);
 
-  const updateProductDetails = useCallback(async (id, price, imageUrl) => {
+  const updateProductDetails = useCallback(async (id, price, imageUrl, masterCount, availability) => {
     try {
-      const result = await productAPI.update(id, price, imageUrl);
+      const result = await productAPI.update(id, price, imageUrl, masterCount, availability);
       setProducts((prev) =>
         prev.map((product) =>
           product.id === id
@@ -124,6 +124,8 @@ export function InventoryProvider({ children }) {
                 ...product,
                 price: result.price,
                 imageUrl: result.imageUrl,
+                masterCount: result.masterCount ?? product.masterCount,
+                availability: result.availability ?? product.availability,
               }
             : product
         )
@@ -158,9 +160,9 @@ export function InventoryProvider({ children }) {
     }
   }, [fetchMonthlyReport, fetchProducts]);
 
-  const markDefective = useCallback(async (id, quantity) => {
+  const markDefective = useCallback(async (id, quantity, defectReason) => {
     try {
-      const updated = await productAPI.markDefective(id, quantity);
+      const updated = await productAPI.markDefective(id, quantity, defectReason);
       setProducts((prev) =>
         prev.map((product) =>
           product.id === id

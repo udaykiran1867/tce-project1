@@ -47,6 +47,8 @@ export function InvoicePage() {
     return today.toISOString().split("T")[0]
   }, [])
 
+  const [invoiceDate, setInvoiceDate] = useState(currentDate)
+
   const filteredInvoices = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
     
@@ -110,9 +112,10 @@ export function InvoicePage() {
 
     setUploading(true)
     try {
-      await invoicesAPI.upload({ title: title.trim(), file })
+      await invoicesAPI.upload({ title: title.trim(), file, invoiceDate })
       setTitle("")
       setFile(null)
+      setInvoiceDate(currentDate)
       await fetchInvoices()
     } catch (err) {
       setError(err.message || "Failed to upload invoice")
@@ -181,9 +184,9 @@ export function InvoicePage() {
             <label className="text-sm font-medium">Date</label>
             <input
               type="date"
-              value={currentDate}
-              readOnly
-              className="h-10 w-full rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground"
+              value={invoiceDate}
+              onChange={(e) => setInvoiceDate(e.target.value)}
+              className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 

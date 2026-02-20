@@ -8,16 +8,16 @@ import { InventoryProvider } from "@/lib/inventory-context"
 import { Navbar } from "@/components/navbar"
 
 export default function DashboardLayout({ children }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, authReady } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (authReady && !isAuthenticated) {
       router.push("/login")
     }
-  }, [isAuthenticated, router])
+  }, [authReady, isAuthenticated, router])
 
-  if (!isAuthenticated) {
+  if (!authReady || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 p-8 text-center">

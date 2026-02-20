@@ -344,7 +344,7 @@ export function AnalyticsPage() {
   }, [purchasedByProduct, purchasedSearch])
 
   const lowStockProducts = products.filter(
-    (p) => p.masterCount > 0 && p.availability / p.masterCount <= 0.15
+    (p) => p.masterCount > 0 && (p.availability / p.masterCount <= 0.50 || p.availability === 1)
   )
 
   const downloadMonthlyReport = async (month, year) => {
@@ -652,7 +652,7 @@ export function AnalyticsPage() {
                 </Badge>
               )}
             </div>
-            <CardDescription>Products at or below 15% availability</CardDescription>
+            <CardDescription>Products at or below 50% availability or single items in stock</CardDescription>
           </CardHeader>
           <CardContent>
             {lowStockProducts.length === 0 ? (

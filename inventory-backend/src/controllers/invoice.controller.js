@@ -10,7 +10,7 @@ export const uploadInvoice = [
   upload.single('file'),
   async (req, res) => {
     try {
-      const { title } = req.body;
+      const { title, invoiceDate } = req.body;
 
       if (!title || !req.file) {
         return res.status(400).json({ message: 'Title and file are required' });
@@ -41,6 +41,7 @@ export const uploadInvoice = [
           file_path: filePath,
           file_type: file.mimetype,
           file_size: file.size,
+          uploaded_at: invoiceDate ? new Date(`${invoiceDate}T00:00:00`).toISOString() : undefined,
           // uploaded_by: req.user?.id, // enable later when auth middleware is added
         });
 
@@ -57,6 +58,56 @@ export const uploadInvoice = [
     }
   },
 ];
+
+export const updateInvoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, invoiceDate } = req.body || {};
+
+    if (!id) {
+      return res.status(400).json({ message: 'Invoice id is required' });
+    }
+
+    const updateData = {};
+    if (title !== undefined) {
+      if (!String(title).trim()) {
+        return res.status(400).json({ message: 'Title cannot be empty' });
+      }
+      updateData.title = String(title).trim();
+    }
+
+    if (invoiceDate !== undefined) {
+      if (!invoiceDate) {
+        return res.status(400).json({ message: 'Invoice date cannot be empty' });
+      }
+      const parsed = new Date(`${invoiceDate}T00:00:00`);
+      if (Number.isNaN(parsed.getTime())) {
+        return res.status(400).json({ message: 'Invalid invoice date' });
+      }
+      updateData.uploaded_at = parsed.toISOString();
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+
+    const { data, error } = await supabase
+      .from('invoices')
+      .update(updateData)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    res.json({ message: 'Invoice updated successfully', invoice: data });
+  } catch (err) {
+    console.error('Update invoice error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
 
 // ===============================
 // Fetch Invoices (Newest First)

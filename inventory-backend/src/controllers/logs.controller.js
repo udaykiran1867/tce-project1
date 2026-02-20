@@ -210,9 +210,6 @@ export const getMonthlySummary = async (req, res) => {
         returnDate: formatDate(tx.return_date),
       });
 
-      if (tx.transaction_type === 'borrowed' || tx.transaction_type === 'purchased') {
-        bucket.utilizedItems += tx.quantity || 1;
-      }
     });
 
     (logs || []).forEach((log) => {
@@ -232,8 +229,12 @@ export const getMonthlySummary = async (req, res) => {
           }
           break;
         case 'student_borrow':
-        case 'student_return':
         case 'student_purchase':
+          bucket.utilizedItems += Math.abs(qty);
+          break;
+        case 'student_return':
+          bucket.utilizedItems -= Math.abs(qty);
+          if (bucket.utilizedItems < 0) bucket.utilizedItems = 0;
           break;
         case 'defective_removed':
           bucket.defectiveRemoved += Math.abs(qty);
@@ -328,14 +329,6 @@ export const getMonthlyProductReport = async (req, res) => {
       return res.status(400).json({ error: productsError.message });
     }
 
-    const { data: utilizationTx, error: utilizationError } = await supabase
-      .from('student_transactions')
-      .select('product_id, transaction_type, issue_date, created_at, quantity');
-
-    if (utilizationError) {
-      return res.status(400).json({ error: utilizationError.message });
-    }
-
     const openingMap = new Map();
     (priorLogs || []).forEach((log) => {
       const qty = Math.abs(Number(log.quantity_changed || 0));
@@ -363,15 +356,6 @@ export const getMonthlyProductReport = async (req, res) => {
     });
 
     const utilizedMap = new Map();
-    (utilizationTx || []).forEach((tx) => {
-      if (tx.transaction_type !== 'borrowed' && tx.transaction_type !== 'purchased') return;
-      const dateValue = tx.issue_date || tx.created_at;
-      const createdAt = new Date(dateValue);
-      if (createdAt < startDate || createdAt > endDate) return;
-      const qty = Number(tx.quantity || 1);
-      const current = utilizedMap.get(tx.product_id) || 0;
-      utilizedMap.set(tx.product_id, current + qty);
-    });
 
     const additionsMap = new Map();
     const scrapMap = new Map();
@@ -383,6 +367,12 @@ export const getMonthlyProductReport = async (req, res) => {
       } else if (log.action_type === 'defective_removed') {
         const current = scrapMap.get(log.product_id) || 0;
         scrapMap.set(log.product_id, current + qty);
+      } else if (log.action_type === 'student_borrow' || log.action_type === 'student_purchase') {
+        const current = utilizedMap.get(log.product_id) || 0;
+        utilizedMap.set(log.product_id, current + qty);
+      } else if (log.action_type === 'student_return') {
+        const current = utilizedMap.get(log.product_id) || 0;
+        utilizedMap.set(log.product_id, Math.max(current - qty, 0));
       }
     });
 
@@ -452,5 +442,68 @@ export const getRecentLogs = async (req, res) => {
     res.json(logs || []);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch logs' });
+  }
+};
+
+export const getDefectiveRemarks = async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit || '500', 10), 1), 2000);
+
+    let logs = [];
+    const { data: logsWithReason, error: logsWithReasonError } = await supabase
+      .from('inventory_logs')
+      .select('id, product_id, quantity_changed, created_at, defect_reason')
+      .eq('action_type', 'defective_removed')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (logsWithReasonError) {
+      const { data: logsFallback, error: logsFallbackError } = await supabase
+        .from('inventory_logs')
+        .select('id, product_id, quantity_changed, created_at')
+        .eq('action_type', 'defective_removed')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (logsFallbackError) {
+        return res.status(400).json({ error: logsFallbackError.message });
+      }
+
+      logs = logsFallback || [];
+    } else {
+      logs = logsWithReason || [];
+    }
+
+    // No fallback remarks map needed since we're not storing separate remark logs
+    const fallbackRemarksMap = new Map();
+
+    const productIds = Array.from(new Set((logs || []).map((log) => log.product_id).filter(Boolean)));
+    let productMap = new Map();
+
+    if (productIds.length > 0) {
+      const { data: products, error: productsError } = await supabase
+        .from('products')
+        .select('id, name')
+        .in('id', productIds);
+
+      if (productsError) {
+        return res.status(400).json({ error: productsError.message });
+      }
+
+      productMap = new Map((products || []).map((product) => [product.id, product.name]));
+    }
+
+    const rows = (logs || []).map((log) => ({
+      id: log.id,
+      productId: log.product_id,
+      productName: productMap.get(log.product_id) || 'Unknown product',
+      quantity: Math.abs(Number(log.quantity_changed || 0)),
+      remarks: log.defect_reason || fallbackRemarksMap.get(`${log.product_id}|${log.created_at}`) || '',
+      createdAt: log.created_at,
+    }));
+
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch defective remarks' });
   }
 };

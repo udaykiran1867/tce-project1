@@ -136,7 +136,7 @@ export function ProductCard({ product, onEdit, onOpenRecords }) {
       <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
         <DialogContent className="sm:max-w-md">
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold">{product.name}</h2>
+            <DialogPrimitive.Title className="text-lg font-semibold">{product.name}</DialogPrimitive.Title>
             {product.imageUrl && (
               <img 
                 src={product.imageUrl} 
@@ -144,16 +144,6 @@ export function ProductCard({ product, onEdit, onOpenRecords }) {
                 className="w-full max-h-96 object-contain rounded-lg"
               />
             )}
-            <div className="text-center">
-              <a 
-                href={product.imageUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-sm text-blue-500 hover:underline"
-              >
-                Open in new tab
-              </a>
-            </div>
           </div>
         </DialogContent>
       </Dialog>

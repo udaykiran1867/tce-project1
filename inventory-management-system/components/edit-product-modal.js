@@ -66,6 +66,7 @@ export function EditProductModal({ product, open, onOpenChange }) {
 
   const [purchaseQuantity, setPurchaseQuantity] = useState("")
   const [defectiveQuantity, setDefectiveQuantity] = useState("")
+  const [defectRemarks, setDefectRemarks] = useState("")
   const [price, setPrice] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [imagePreview, setImagePreview] = useState("")
@@ -85,6 +86,9 @@ export function EditProductModal({ product, open, onOpenChange }) {
 
   if (!currentProduct) return null
 
+  const availableCount = currentProduct.availability || 0
+  const cannotMarkDefective = availableCount <= 0
+
   const handleAddPurchased = async () => {
     const quantity = parseInt(purchaseQuantity)
     if (quantity > 0) {
@@ -97,10 +101,18 @@ export function EditProductModal({ product, open, onOpenChange }) {
 
   const handleMarkDefective = async () => {
     const quantity = parseInt(defectiveQuantity)
+    const remarks = defectRemarks.trim()
+
+    if (!remarks) {
+      alert("Remarks are required for defective items")
+      return
+    }
+
     if (quantity > 0 && quantity <= (currentProduct.availability || 0)) {
-      const ok = await markDefective(currentProduct.id, quantity)
+      const ok = await markDefective(currentProduct.id, quantity, remarks)
       if (ok) {
         setDefectiveQuantity("")
+        setDefectRemarks("")
       }
     }
   }
@@ -150,6 +162,7 @@ export function EditProductModal({ product, open, onOpenChange }) {
   const handleClose = () => {
     setPurchaseQuantity("")
     setDefectiveQuantity("")
+    setDefectRemarks("")
     setPrice("")
     setImageUrl("")
     setImagePreview("")
@@ -219,34 +232,55 @@ export function EditProductModal({ product, open, onOpenChange }) {
               </TabsContent>
 
               <TabsContent value="defective" className="space-y-4 mt-4">
+                {cannotMarkDefective && (
+                  <div className="p-3 text-sm text-amber-700 bg-amber-100 rounded-md">
+                    No available stock to mark as defective. Increase availability first.
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="defectiveQty">Defective Quantity</Label>
                   <p className="text-xs text-muted-foreground">
-                    Mark items as defective to decrease availability (max: {currentProduct.availability || 0})
+                    Mark items as defective to decrease availability (max: {availableCount})
                   </p>
                   <div className="flex gap-2">
                     <Input
                       id="defectiveQty"
                       type="number"
                       min="1"
-                      max={currentProduct.availability || undefined}
+                      max={availableCount || undefined}
                       placeholder="Enter quantity"
                       value={defectiveQuantity}
                       onChange={(e) => setDefectiveQuantity(e.target.value)}
+                      disabled={cannotMarkDefective}
                     />
                     <Button
                       variant="secondary"
                       onClick={handleMarkDefective}
                       disabled={
+                        cannotMarkDefective ||
                         !defectiveQuantity ||
+                        !defectRemarks.trim() ||
                         parseInt(defectiveQuantity) <= 0 ||
-                        parseInt(defectiveQuantity) > (currentProduct.availability || 0)
+                        parseInt(defectiveQuantity) > availableCount
                       }
                     >
                       <Minus className="w-4 h-4 mr-2" />
                       Mark
                     </Button>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="defectRemarks">Remarks *</Label>
+                  <textarea
+                    id="defectRemarks"
+                    rows={3}
+                    placeholder="Write defect remarks (e.g., Broken pin, not powering on)"
+                    value={defectRemarks}
+                    onChange={(e) => setDefectRemarks(e.target.value)}
+                    disabled={cannotMarkDefective}
+                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring"
+                  />
                 </div>
               </TabsContent>
 

@@ -123,12 +123,12 @@ export function AddProductModal({ open, onOpenChange }) {
       return
     }
 
-    if (price && isNaN(parseFloat(price))) {
-      setError("Price must be a valid number")
+    if (!price || isNaN(parseFloat(price)) || parseFloat(price) < 0) {
+      setError("Please enter a valid price (must be 0 or greater)")
       return
     }
 
-    const success = await addProduct(name.trim(), master, available, price ? parseFloat(price) : null, imageUrl || null)
+    const success = await addProduct(name.trim(), master, available, parseFloat(price), imageUrl || null)
     
     if (!success) {
       setError("Failed to add product. Please try again.")
@@ -226,7 +226,7 @@ export function AddProductModal({ open, onOpenChange }) {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="price">Price (Optional)</Label>
+            <Label htmlFor="price">Price *</Label>
             <p className="text-xs text-muted-foreground">
               Price per unit in your currency
             </p>
@@ -238,6 +238,7 @@ export function AddProductModal({ open, onOpenChange }) {
               placeholder="e.g., 49.99"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
+              required
             />
           </div>
 
