@@ -68,6 +68,7 @@ export function EditProductModal({ product, open, onOpenChange }) {
   const [defectiveQuantity, setDefectiveQuantity] = useState("")
   const [defectRemarks, setDefectRemarks] = useState("")
   const [price, setPrice] = useState("")
+  const [masterCount, setMasterCount] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [imagePreview, setImagePreview] = useState("")
   const [uploading, setUploading] = useState(false)
@@ -81,6 +82,7 @@ export function EditProductModal({ product, open, onOpenChange }) {
     setPrice(foundProduct.price?.toString() || "")
     setImageUrl(foundProduct.imageUrl || "")
     setImagePreview(foundProduct.imageUrl || "")
+    setMasterCount(foundProduct.masterCount?.toString() || "")
     return foundProduct
   }, [product, products])
 
@@ -128,10 +130,26 @@ export function EditProductModal({ product, open, onOpenChange }) {
       alert("Price must be a valid number")
       return
     }
+    
+    const newMasterCount = masterCount ? parseInt(masterCount) : null
+    if (newMasterCount && newMasterCount <= 0) {
+      alert("Master count must be greater than 0")
+      return
+    }
+    
+    // Calculate new availability based on master count change
+    let newAvailability = currentProduct.availability
+    if (newMasterCount && newMasterCount !== currentProduct.masterCount) {
+      const difference = newMasterCount - (currentProduct.masterCount || 0)
+      newAvailability = Math.max(0, (currentProduct.availability || 0) + difference)
+    }
+    
     const ok = await updateProductDetails(
       currentProduct.id,
       price ? parseFloat(price) : null,
-      imageUrl || null
+      imageUrl || null,
+      newMasterCount || currentProduct.masterCount,
+      newAvailability
     )
     if (ok) {
       setUpdateSuccess(true)
@@ -202,7 +220,7 @@ export function EditProductModal({ product, open, onOpenChange }) {
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="purchase">Add Purchased</TabsTrigger>
                 <TabsTrigger value="defective">Mark Defective</TabsTrigger>
-                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="details">Edit Details</TabsTrigger>
               </TabsList>
 
               <TabsContent value="purchase" className="space-y-4 mt-4">
@@ -290,6 +308,29 @@ export function EditProductModal({ product, open, onOpenChange }) {
                     ✓ Product details updated successfully
                   </div>
                 )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="masterCount">Master Count</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Edit total quantity. Availability will auto-adjust by the difference.
+                  </p>
+                  <Input
+                    id="masterCount"
+                    type="number"
+                    min="1"
+                    placeholder="Enter master count"
+                    value={masterCount}
+                    onChange={(e) => setMasterCount(e.target.value)}
+                  />
+                  {masterCount && parseInt(masterCount) > 0 && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Current → New: {currentProduct.masterCount} → {masterCount}
+                      <br />
+                      Availability will be adjusted by {parseInt(masterCount) - (currentProduct.masterCount || 0)}
+                    </p>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="detailPrice">Price (Optional)</Label>
                   <p className="text-xs text-muted-foreground">
