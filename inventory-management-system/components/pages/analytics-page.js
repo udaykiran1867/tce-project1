@@ -475,7 +475,12 @@ export function AnalyticsPage() {
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+            <h1 
+              className="text-3xl font-bold tracking-tight"
+              style={{ color: "oklch(24.571% 0.12604 288.685)" }}
+            >
+              Analytics Dashboard
+            </h1>
             <p className="text-muted-foreground">
               Comprehensive insights and performance metrics
             </p>

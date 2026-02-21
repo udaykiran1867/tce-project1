@@ -241,6 +241,7 @@ export function EditProductModal({ product, open, onOpenChange }) {
                     <Button
                       onClick={handleAddPurchased}
                       disabled={!purchaseQuantity || parseInt(purchaseQuantity) <= 0}
+                      style={{ backgroundColor: "oklch(24.571% 0.12604 288.685)" }}
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add
@@ -281,6 +282,7 @@ export function EditProductModal({ product, open, onOpenChange }) {
                         parseInt(defectiveQuantity) <= 0 ||
                         parseInt(defectiveQuantity) > availableCount
                       }
+                      style={{ backgroundColor: "oklch(24.571% 0.12604 288.685)" }}
                     >
                       <Minus className="w-4 h-4 mr-2" />
                       Mark
@@ -410,6 +412,7 @@ export function EditProductModal({ product, open, onOpenChange }) {
                 <Button 
                   onClick={handleUpdateProductDetails}
                   className="w-full"
+                  style={{ backgroundColor: "oklch(24.571% 0.12604 288.685)" }}
                 >
                   Save Details
                 </Button>

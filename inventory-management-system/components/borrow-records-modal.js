@@ -235,7 +235,7 @@ export function BorrowRecordsModal({ product, open, onOpenChange }) {
       return
     }
 
-    if (returnDate && returnDate <= takenDate) {
+    if (returnDate && returnDate < takenDate) {
       setError('Return date must be greater than taken date')
       return
     }
@@ -548,7 +548,12 @@ export function BorrowRecordsModal({ product, open, onOpenChange }) {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                style={{ backgroundColor: "oklch(24.571% 0.12604 288.685)" }}
+                disabled={isSubmitting}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 {isSubmitting ? (editingRecord ? 'Updating...' : 'Adding...') : (editingRecord ? 'Update Entry' : 'Add Entry')}
               </Button>

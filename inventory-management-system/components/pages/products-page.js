@@ -78,7 +78,10 @@ export function ProductsPage() {
           </p>
         </div>
 
-        <Button onClick={() => setShowAddModal(true)}>
+        <Button 
+          onClick={() => setShowAddModal(true)}
+          style={{ backgroundColor: "oklch(24.571% 0.12604 288.685)" }}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Add Product
         </Button>
@@ -100,6 +103,7 @@ export function ProductsPage() {
             <Button
               className="mt-4"
               onClick={() => setShowAddModal(true)}
+              style={{ backgroundColor: "oklch(24.571% 0.12604 288.685)" }}
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Your First Product

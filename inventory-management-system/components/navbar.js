@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { useInventory } from "@/lib/inventory-context"
-import { BarChart3, LogOut, Search, Menu, X, Package, FileText, NotebookText } from "lucide-react"
+import { BarChart3, LogOut, Search, Menu, X, Package, FileText, NotebookText, ClipboardList } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 
@@ -23,6 +23,7 @@ export function Navbar() {
 
   const navLinks = [
     { href: "/dashboard/products", label: "Products", icon: Package },
+    { href: "/dashboard/multirecord", label: "Multirecord", icon: ClipboardList },
     { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/dashboard/invoice", label: "Invoice", icon: FileText },
     { href: "/dashboard/remarks", label: "Remarks", icon: NotebookText },

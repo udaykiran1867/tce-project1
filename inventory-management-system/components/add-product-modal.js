@@ -306,7 +306,10 @@ export function AddProductModal({ open, onOpenChange }) {
             <Button type="button" variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button type="submit">
+            <Button 
+              type="submit"
+              style={{ backgroundColor: "oklch(24.571% 0.12604 288.685)" }}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Product
             </Button>
